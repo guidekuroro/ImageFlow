@@ -1,0 +1,25 @@
+{
+    "dataDir": "./Test_dataset",
+    "startingIdx": 0,
+    "idxStep": 1,
+    "idxNumberRequest": 1000,
+    "poseFilename": "pose_name.json",
+    "poseName": "pose_name",
+    "poseData": "poses.npy",
+    "outDir": "Optical_flow_droid",
+    "imageDir": "rgb",
+    "imageSuffix": "_rgb",
+    "imageExt": ".png",
+    "depthDir": "droid_depth",
+    "depthSuffix": "_depth",
+    "depthExt": ".npy",
+    "camera": {
+        "focal": 577,
+        "imageSize": [360, 536]
+    },
+    "imageMagnitudeFactor": 3.0,
+    "imageWaitTimeMS": 2000,
+    "distanceRange": 10000,
+    "flagDegree": true,
+    "warpErrorThreshold": 1
+}
