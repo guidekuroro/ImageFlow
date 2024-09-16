@@ -17,7 +17,7 @@ from ColorMapping import color_map
 
 # Global variables used as constants.
 
-INPUT_JSON = "./IFInput.json"
+INPUT_JSON = "./IFInput_SLAM.json"
 
 ply_header = '''ply
 format ascii 1.0
@@ -64,7 +64,7 @@ def depth_to_color(depth, limit = None):
     if ( limit is not None ):
         d[ d>limit ] = limit
 
-    color = np.zeros((depth.shape[0], depth.shape[1], 3), dtype = float)
+    color = np.zeros((depth.shape[0], depth.shape[1], 3), dtype = np.float32)
     color[:, :, 0] = d
     color[:, :, 1] = d
     color[:, :, 2] = d
@@ -79,7 +79,7 @@ def output_to_ply(fn, X, imageSize, rLimit, origin):
     if ( X.max() <= X.min() ):
         raise Exception("X.max() = %f, X.min() = %f." % ( X.max(), X.min() ) )
     
-    vertices = np.zeros(( imageSize[0], imageSize[1], 3 ), dtype = np.float)
+    vertices = np.zeros(( imageSize[0], imageSize[1], 3 ), dtype = np.float32)
     vertices[:, :, 0] = X[0, :].reshape(imageSize)
     vertices[:, :, 1] = X[1, :].reshape(imageSize)
     vertices[:, :, 2] = X[2, :].reshape(imageSize)
@@ -166,7 +166,7 @@ def from_quaternion_to_rotation_matrix(q):
         [ ss * (qki - qrj), ss * (qjk + qri), 1.0 - ss * (qi2 + qj2) ],\
     ]
 
-    R = np.array(R, dtype = np.float)
+    R = np.array(R, dtype = np.float32)
 
     return R
 
@@ -190,17 +190,17 @@ def du_dv(nu, nv, imageSize):
 def show(ang, mag, outDir = None, waitTime = None, magFactor = 1.0, angShift = 0.0, flagShowFigure=True):
     """ang: degree"""
     # Use Hue, Saturation, Value colour model 
-    hsv = np.zeros( ( ang.shape[0], ang.shape[1], 3 ) , dtype=np.uint8)
+    hsv = np.zeros( ( ang.shape[0], ang.shape[1], 3 ) , dtype=np.float32)
     hsv[..., 1] = 255
 
     # mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1]
-
-    hsv[..., 0] = (ang + angShift)/ 2
-    hsv[..., 2] = np.clip(mag * magFactor, 0, 255).astype(np.uint8) #cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
+    hsv[..., 0] = (ang + angShift)
+    hsv[..., 2] = np.clip(mag * magFactor, 0, 255).astype(np.float32) # cv2.normalize(mag * magFactor, None, 0, 255, cv2.NORM_MINMAX) 
     bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
 
     if ( outDir is not None ):
-        cv2.imwrite(outDir + "/bgr.jpg", bgr, [cv2.IMWRITE_JPEG_QUALITY, 100])
+        # cv2.imwrite(outDir + "/bgr.jpg", bgr, [cv2.IMWRITE_JPEG_QUALITY, 100])
+        save_float_image(outDir + "/bgr.jpg", bgr)
 
     if ( True == flagShowFigure ):
         cv2.imshow("HSV2GBR", bgr)
@@ -242,18 +242,18 @@ class CameraBase(object):
         self.pu = self.imageSize[1] / 2
         self.pv = self.imageSize[0] / 2
 
-        self.cameraMatrix = np.eye(3, dtype = np.float)
+        self.cameraMatrix = np.eye(3, dtype = np.float32)
         self.cameraMatrix[0, 0] = self.focal
         self.cameraMatrix[1, 1] = self.focal
         self.cameraMatrix[0, 2] = self.pu
         self.cameraMatrix[1, 2] = self.pv
 
-        self.worldR = np.zeros((3,3), dtype = np.float)
+        self.worldR = np.zeros((3,3), dtype = np.float32)
         self.worldR[0, 1] = 1.0
         self.worldR[1, 2] = 1.0
         self.worldR[2, 0] = 1.0
 
-        self.worldRI = np.zeros((3,3), dtype = np.float)
+        self.worldRI = np.zeros((3,3), dtype = np.float32)
         self.worldRI[0, 2] = 1.0
         self.worldRI[1, 0] = 1.0
         self.worldRI[2, 1] = 1.0
@@ -276,13 +276,13 @@ class CameraBase(object):
 
         u, v = np.meshgrid(wIdx, hIdx)
 
-        u = u.astype(np.float)
-        v = v.astype(np.float)
+        u = u.astype(np.float32)
+        v = v.astype(np.float32)
         
         x = ( u - self.pu ) * depth / self.focal
         y = ( v - self.pv ) * depth / self.focal
 
-        coor = np.zeros((3, self.size), dtype = np.float)
+        coor = np.zeros((3, self.size), dtype = np.float32)
         coor[0, :] = x.reshape((1, -1))
         coor[1, :] = y.reshape((1, -1))
         coor[2, :] = depth.reshape((1, -1))
@@ -380,7 +380,7 @@ def create_warp_masks(imageSize, x01, x1, u, v, p=0.01, D=1000):
                 # Current point is nearer to the camera.
                 # Update the occlusion mask.
                 maskOcclusion[ opIndex // w, opIndex % w ] = 1
-            elif ( d0 > dr ):
+            elif ( d0 >= dr ):
                 # Current point is farther.
                 # Update the occlusion mask.
                 maskOcclusion[ iy, ix ] = 1
